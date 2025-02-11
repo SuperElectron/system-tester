@@ -1,0 +1,56 @@
+
+services:
+
+  postgresql:
+    image: superelectron/kubernetes-postgres
+    container_name: postgresql
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: foobarbaz
+      POSTGRES_DB: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 5
+    networks:
+      - load_tester
+
+  api-golang:
+    build:
+      context: api-golang
+    image: superelectron/kubernetes-golang
+    container_name: api-golang
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgres://postgres:foobarbaz@postgresql:5432/postgres"
+    ports:
+      - "8000:8000"
+    restart: always
+    networks:
+      - load_tester
+
+  client:
+    build:
+      context: client
+    image: superelectron/kubernetes-react-nginx
+    container_name: client
+    depends_on:
+      - api-golang
+    ports:
+      - "8080:8080"
+    restart: always
+    networks:
+      - load_tester
+
+networks:
+  load_tester:
+    driver: bridge
+
+volumes:
+  pgdata:

@@ -1,0 +1,18 @@
+version: "3"
+
+vars:
+  DATABASE_URL: "postgres://postgres:foobarbaz@localhost:5432/postgres"
+  IMAGE_REPO: superelectron/kubernetes-golang
+  IMAGE_TAG: latest
+
+tasks:
+
+  build:
+    desc: Build container image
+    cmds:
+      - |
+        KO_DOCKER_REPO='{{.IMAGE_REPO}}' \
+          ko build \
+          --bare \
+          --tags={{.IMAGE_TAG}} \
+          --platform=all

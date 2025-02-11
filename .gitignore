@@ -1,0 +1,14 @@
+# IDE
+.vscode
+.idea
+
+# Local developer resources
+.devbox
+.venv
+.cache
+bin/
+**/.DS_STORE
+
+# Python junk
+__pycache__
+**/*/node_modules
