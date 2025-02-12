@@ -1,0 +1,80 @@
+version: "3"
+
+env:
+  # Set default gum style options
+  BORDER: double
+  BORDER_FOREGROUND: "212"
+  PADDING: "1 1"
+  MARGIN: "1 1"
+  DOCKER_REPO: "superelectron/kubernetes-load-generator"
+
+includes:
+  common:
+    taskfile: ./common/Taskfile.yaml
+    dir: ./common
+  postgresql:
+    taskfile: ./postgresql/Taskfile.yaml
+    dir: ./postgresql
+  cluster:
+    taskfile: ./create-cluster/Taskfile.yaml
+    dir: ./create-cluster
+
+tasks:
+  api-golang:apply:
+    desc: "Apply kubernetes resource manifests: api-golang"
+    cmds:
+      - "kubectl apply -f ./api-golang"
+
+  client:apply:
+    desc: "Apply kubernetes resource manifests: client"
+    cmds:
+      - "kubectl apply -f ./client"
+
+#  load-generator:create-image-pull-secret:
+#    desc: "Create image pull secret to pull from private registry"
+#    env:
+#      DOCKER_USERNAME:
+#      DOCKER_EMAIL:
+#      DOCKER_PASSWORD:
+#    cmds:
+#      - |
+#        if [ -z "$DOCKER_USERNAME" ] || [ -z "$DOCKER_EMAIL" ] || [ -z "$DOCKER_PASSWORD" ]; then
+#          echo "Environment variables DOCKER_USERNAME, DOCKER_EMAIL, and DOCKER_PASSWORD are required."
+#          exit 1
+#        fi
+#      - |
+#        kubectl create secret -n system-tester docker-registry dockerconfigjson \
+#          --docker-email=${DOCKER_EMAIL} \
+#          --docker-username=${DOCKER_USERNAME} \
+#          --docker-password=${DOCKER_PASSWORD} \
+#          --docker-server=https://index.docker.io/v1/
+#
+#  load-generator:apply:
+#    desc: "Apply kubernetes resource manifests: load-generator"
+#    cmds:
+#      - cmd: |
+#          gum style "$(cat <<EOF
+#          🚨  You will need to push a copy of the corresponding container image
+#          🚨  container image to a repository of your own because
+#          🚨  $DOCKER_REPO
+#          🚨  is private (to demonstrate how image pull secrets work)
+#          EOF
+#          )"
+#        silent: true
+#      - "kubectl apply -f ./load-generator"
+
+  prepare:
+    - task: cluster:start
+
+  start:
+    - task: common:apply-namespace
+    - task: postgresql:install-postgres
+    - task: postgresql:apply-initial-db-migration-job
+    - task: common:deploy-traefik
+    - task: common:apply-traefik-middleware
+    - task: api-golang:apply
+    - task: client:apply
+#    - task: load-generator:apply
+
+  stop:
+    - task: cluster:stop

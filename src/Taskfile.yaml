@@ -41,6 +41,7 @@ tasks:
     - task: api-golang:build
     - task: client:build
     - task: postgresql:build
+    - task: postgresql:build-migration
     - task: load-generator:build
 
 ##############################################################################

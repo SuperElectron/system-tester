@@ -1,0 +1,16 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: client
+  namespace: system-tester
+spec:
+  entryPoints:
+    - web
+  routes:
+    - kind: Rule
+      match: Host(`subnet.mysite.com`)
+      services:
+        - kind: Service
+          name: client
+          port: 8080
+          scheme: http
