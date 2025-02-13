@@ -11,6 +11,7 @@ import "./App.css";
 const queryClient = new QueryClient();
 
 function CurrentTime(props) {
+  console.log(`API CALL: ${props.api}`);
   const { isLoading, error, data, isFetching } = useQuery({
     queryKey: [props.api],
     queryFn: () => axios.get(`${props.api}`).then((res) => res.data),

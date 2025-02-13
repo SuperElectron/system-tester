@@ -9,10 +9,11 @@ spec:
       containers:
         - name: migrate
           image: superelectron/kubernetes-postgres-migration:latest
+          command: ["/usr/local/bin/migrate"]
           args:
-            - -path=/app/migrations
-            - -database=$(DATABASE_URL)?sslmode=disable
-            - up
+            - "-source=file:///app/migrations"
+            - "-database=$(DATABASE_URL)?sslmode=disable"
+            - "up"
           envFrom:
             - secretRef:
                 name: db-password

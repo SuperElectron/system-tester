@@ -21,7 +21,7 @@ spec:
           imagePullPolicy: Always
           env:
             - name: API_URL
-              value: http://api-golang.system-tester.svc.cluster.local:3000
+              value: http://subnet.mysite.com/api/golang
             - name: DELAY_MS
               value: "500"
           # Could alternatively move these to a configmap

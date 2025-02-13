@@ -14,6 +14,9 @@ tasks:
     cmds:
       - REPLACE_WITH_ABSOLUTE_PATH=${PWD} envsubst < kind-config.yaml.TEMPLATE > kind-config.yaml
       - kind create cluster --config kind-config.yaml
+
+      # start the cloud provider, so that you have an external IP address with traefik
+      # $ kubectl get svc -n system-tester
       - sudo ../../.cache/bin/cloud-provider-kind
   stop:
     desc: "Stop and clean up cluster"

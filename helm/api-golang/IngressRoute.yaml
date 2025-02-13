@@ -8,6 +8,9 @@ spec:
     - web
   routes:
     - kind: Rule
+      ## look for ip address of kind-control-plane, and add to /etc/hosts:
+      ##     172.18.0.3 subnet.mysite.com
+      ## $ kubectl get nodes -o wide
       match: Host(`subnet.mysite.com`) && PathPrefix(`/api/golang`)
       middlewares:
         - name: strip-api-prefixes
