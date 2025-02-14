@@ -1,3 +1,25 @@
-#service:
-#  type: NodePort # ClusterIP
-#  nodePort: 32080
+replicaCount: 1
+
+image:
+  repository: superelectron/kubernetes-react-nginx
+  tag: latest
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: true
+  host: subnet.mysite.com
+  entryPoint: web
+
+configMap:
+  name: nginx-conf
+  mountPath: /etc/nginx/conf.d
+
+resources:
+  limits:
+    memory: 100Mi
+  requests:
+    cpu: 50m
+    memory: 100Mi

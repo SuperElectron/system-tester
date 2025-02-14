@@ -1,10 +1,10 @@
 apiVersion: traefik.containo.us/v1alpha1
 kind: Middleware
 metadata:
-  name: strip-api-prefixes
-  namespace: system-tester
+  name: {{ .Values.ingress.middleware }}
+  namespace: {{ .Release.Namespace }}
 spec:
   stripPrefix:
     forceSlash: false
     prefixes:
-      - /api/golang
+      - {{ .Values.ingress.path }}

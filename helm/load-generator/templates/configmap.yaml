@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.configMap.name }}
+  namespace: {{ .Release.Namespace }}
+data:
+  API_URL: "{{ .Values.env.apiUrl }}"
+  DELAY_MS: "{{ .Values.env.delayMs }}"

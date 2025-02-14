@@ -1,77 +1,97 @@
 version: "3"
 
+###########################################################################
 env:
+
   # Set default gum style options
   BORDER: double
   BORDER_FOREGROUND: "212"
   PADDING: "1 1"
   MARGIN: "1 1"
   DOCKER_REPO: "superelectron/kubernetes-load-generator"
+  T_NAMESPACE: "system-tester"
 
+###########################################################################
 includes:
-  common:
-    taskfile: ./common/Taskfile.yaml
-    dir: ./common
-  postgresql:
-    taskfile: ./postgresql/Taskfile.yaml
-    dir: ./postgresql
+
+  api-golang:
+    taskfile: ./api-golang/Taskfile.yaml
+    dir: ./api-golang
+
+  client:
+    taskfile: ./client/Taskfile.yaml
+    dir: ./client
+
   cluster:
     taskfile: ./create-cluster/Taskfile.yaml
     dir: ./create-cluster
 
+  load-generator:
+    taskfile: ./load-generator/Taskfile.yaml
+    dir: ./load-generator
+
+  postgresql:
+    taskfile: ./postgresql/Taskfile.yaml
+    dir: ./postgresql
+
+###########################################################################
 tasks:
-  api-golang:apply:
-    desc: "Apply kubernetes resource manifests: api-golang"
-    cmds:
-      - "kubectl apply -f ./api-golang"
 
-  client:apply:
-    desc: "Apply kubernetes resource manifests: client"
-    cmds:
-      - "kubectl apply -f ./client"
+#  start:
+#    - task: apply-namespace
+#    - task: deploy-traefik
+#
+#    - task: postgres
+#    - task: api-golang
 
+### STEP 1
   prepare:
-    - task: cluster:start
+    desc: "Create golang api with namespace"
+    cmds:
+      - task: cluster:start
 
-  start:
-    ###########################
-    ### Notes below each command are intended to aid in troubleshooting
-    ###########################
-    - task: common:apply-namespace
+  namespace:
+    desc: "Apply Kubernetes Namespace"
+    cmds:
+      - kubectl create namespace {{.T_NAMESPACE}}
+      - kubens {{.T_NAMESPACE}}
 
-    - task: common:deploy-traefik
-    - task: common:apply-traefik-middleware
-      ##########
-      ## View everything you created
-      # $ k get all -n system-tester
-      ##########
-      ## if you update your dns provider A Record, you can access at url in client/IngressRoute.yaml
-      ## Get external ip from control-plane, and add to /etc/hosts
-      # $ k get svc -n system-tester
+### STEP 2
+  # kubectl get namespaces
+  postgres:
+    desc: "Deploy PostgreSQL using Helm"
+    cmds:
+      - task: postgresql:install
 
-    - task: postgresql:install-postgres
-      ##########
-      ## look at the postgres pods
-      # k get pods -n postgres
-      # k get pvc -n postgres
-    - task: postgresql:apply-initial-db-migration-job
-      ##########
-      ## watch for job completion, or delete it so you can run it again
-      # $ k get jobs
-      # $ k delete job db-migrator -n system-tester
+### STEP 3
+  deploy-traefik:
+    vars:
+        NAMESPACE: "{{.T_NAMESPACE}}"
+    desc: "Deploy Traefik using Helm"
+    cmds:
+      - helm repo add traefik https://traefik.github.io/charts
+      - helm repo update
+      - helm upgrade --install traefik traefik/traefik --namespace {{.T_NAMESPACE}} --create-namespace --version 20.8.0
 
-    - task: api-golang:apply
-    - task: client:apply
-      ##########
-      ## View everything you created
-      # $ k get all -n system-tester
-      # $ kubectl get svc client -n system-tester
-      ##########
-      ## check the database
-      # kubectl exec -it <postgres-pod-name> -n <namespace> -- bash -c "psql -U postgres -d postgres -c '\dt' -c 'SELECT * FROM <table-name>'"
-      #   curl -I http://subnet.mysite.com/api/golang
+### STEP 4
+  api-golang:
+    vars:
+      NAMESPACE: "{{.T_NAMESPACE}}"
+    desc: "Create golang api"
+    cmds:
+    - task: api-golang:install
 
+  client:
+    vars:
+      NAMESPACE: "{{.T_NAMESPACE}}"
+    desc: "Create client"
+    cmds:
+      - task: client:install
+
+### STEP 5 - run the load test
   load-test:
+    vars:
+      NAMESPACE: "{{.T_NAMESPACE}}"
     desc: "Apply kubernetes resource manifests: load-generator"
     cmds:
       - cmd: |
@@ -83,8 +103,50 @@ tasks:
           EOF
           )"
         silent: true
-      - "kubectl apply -f ./load-generator"
+      - task: load-generator:install
+
+### SHUTDOWN
 
   stop:
-    - kubectl delete -f Namespace.yaml
-    - task: cluster:stop
+    desc: "Stop all workloads in the namespace without deleting it"
+    cmds:
+      - kubectl scale deployment --all --replicas=0 -n {{.T_NAMESPACE}}
+      - kubectl scale statefulset --all --replicas=0 -n {{.T_NAMESPACE}}
+      - kubectl delete pod --all -n {{.T_NAMESPACE}}
+      - kubectl delete job --all -n {{.T_NAMESPACE}}
+#      - kubectl patch cronjob --all -n {{.NAMESPACE}} --type='merge' -p '{"spec": {"suspend": true}}'
+#      - kubectl patch cronjob --all -n {{.NAMESPACE}} -p '{"spec": { "suspend": true } }'
+
+#  check_running:
+#    desc: "Check all running resources"
+#    cmds: 
+#      - cmd: | 
+#      gum style "$(cat <<EOF
+#         kubectl get all -n {{.T_NAMESPACE}}
+#         kubectl get pvc -n {{.T_NAMESPACE}}
+#         kubectl get pv
+#         kubectl get svc -n {{.T_NAMESPACE}} | grep LoadBalancer
+#         kubectl get ingress -n {{.T_NAMESPACE}}
+#         kubectl get svc -n {{.T_NAMESPACE}} --output=jsonpath='{ .items[ * ].status.loadBalancer.ingress[ * ].ip }'
+#      EOF
+#      )"
+
+
+
+  delete:
+    desc: "Apply kubernetes resource manifests: load-generator"
+    cmds:
+      - cmd: |
+          gum style "$(cat <<EOF
+          
+          ✅ All Helm releases in that namespace
+          ✅ PersistentVolumeClaims (PVCs) (if not retained by a StorageClass)
+          ✅ Pods and workloads running inside the namespace
+          ❌ Cluster-wide resources (like CustomResourceDefinitions (CRDs))
+          ❌ Storage Volumes (if your StorageClass retains PVCs after deletion)
+          ❌ Helm Repositories (Helm itself stays intact, just the releases in that namespace are removed)
+          EOF
+          )"
+
+      - kubectl delete namespace {{.T_NAMESPACE}}
+      - task: cluster:stop

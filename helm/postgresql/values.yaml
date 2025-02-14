@@ -1,3 +1,16 @@
+database:
+  host: postgres-postgresql.postgres.svc.cluster.local
+
+secret:
+  name: db-password
+  postgresPassword: foobarbaz
+
+migrator:
+  image: bitnami/postgresql:latest
+
+migrationConfigMap: db-migration-scripts
+
+
 primary:
   resources:
     limits:

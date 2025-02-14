@@ -1,42 +1,37 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: api-golang
-  namespace: system-tester
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: api-golang
+    app: {{ .Release.Name }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: api-golang
+      app: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app: api-golang
+        app: {{ .Release.Name }}
     spec:
       containers:
         - name: api-golang
-          image: superelectron/kubernetes-golang:latest
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
           env:
             - name: PORT
-              value: "8000"
+              value: "{{ .Values.env.port }}"
           envFrom:
             - secretRef:
-                name: api-golang-database-url
+                name: {{ .Values.secret.name }}
           ports:
-            - containerPort: 8000
+            - containerPort: {{ .Values.service.port }}
               protocol: TCP
           readinessProbe:
             httpGet:
               path: /ping
-              port: 8000
-          resources:
-            limits:
-              memory: "100Mi"
-            requests:
-              memory: "100Mi"
-              cpu: "50m"
+              port: {{ .Values.service.port }}
+          resources: {{ toYaml .Values.resources | nindent 12 }}
           securityContext:
             allowPrivilegeEscalation: false
             privileged: false

@@ -1,21 +1,55 @@
 version: "3"
 
+env:
+  RELEASE_NAME: "postgres"
+  NAMESPACE: "{{.T_NAMESPACE | default `postgres` }}"
+
 tasks:
-  install-postgres:
+  install:
     desc: "Deploy PostgreSQL using Helm"
     cmds:
       - helm repo add bitnami https://charts.bitnami.com/bitnami
       - |
-        helm upgrade --install \
-          -n postgres \
-          postgres bitnami/postgresql \
-          --set auth.postgresPassword=foobarbaz \
-          --version 15.3.2 \
+        helm upgrade --install {{.RELEASE_NAME}} bitnami/postgresql \
+          --namespace {{.NAMESPACE}} \
+          --create-namespace \
+          --set auth.postgresPassword={{.POSTGRES_PASSWORD}} \
+          --set primary.resources.limits.ephemeral-storage={{.PRIMARY_LIMITS_EPHEMERAL_STORAGE}} \
+          --set primary.resources.limits.memory={{.PRIMARY_LIMITS_MEMORY}} \
+          --set primary.resources.requests.cpu={{.PRIMARY_REQUESTS_CPU}} \
+          --set primary.resources.requests.ephemeral-storage={{.PRIMARY_REQUESTS_EPHEMERAL_STORAGE}} \
+          --set primary.resources.requests.memory={{.PRIMARY_REQUESTS_MEMORY}} \
           --values values.yaml \
-          --create-namespace
+          --version 15.3.2
 
-  apply-initial-db-migration-job:
-    desc: "Run init.sql script against the DB"
+    migrate:
+      desc: "Run init.sql script against the DB"
+      cmds:
+        - helm upgrade --install {{.RELEASE_NAME}}-migrator . --namespace {{.NAMESPACE}}
+
+  uninstall:
+    desc: "Uninstall PostgreSQL and migration job"
     cmds:
-      - "kubectl apply -f Secret.db-password.yaml"
-      - "kubectl apply -f Job.db-migrator.yaml"
+      - helm uninstall {{.RELEASE_NAME}} --namespace {{.NAMESPACE}}
+      - helm uninstall {{.RELEASE_NAME}}-migrator --namespace {{.NAMESPACE}}
+
+  status:
+    desc: "Get the status of PostgreSQL"
+    cmds:
+      - helm status {{.RELEASE_NAME}} --namespace {{.NAMESPACE}}
+
+  list:
+    desc: "List all Helm releases in the namespace"
+    cmds:
+      - helm list --namespace {{.NAMESPACE}}
+
+  rollback:
+    desc: "Rollback the last PostgreSQL deployment"
+    cmds:
+      - helm rollback {{.RELEASE_NAME}} 0 --namespace {{.NAMESPACE}}
+
+  delete:
+    desc: "Delete PostgreSQL and namespace"
+    cmds:
+      - helm uninstall {{.RELEASE_NAME}} --namespace {{.NAMESPACE}}
+      - kubectl delete namespace {{.NAMESPACE}}
