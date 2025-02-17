@@ -138,7 +138,7 @@ tasks:
     cmds:
       - cmd: |
           gum style "$(cat <<EOF
-          
+
           ✅ All Helm releases in that namespace
           ✅ PersistentVolumeClaims (PVCs) (if not retained by a StorageClass)
           ✅ Pods and workloads running inside the namespace

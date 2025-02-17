@@ -5,6 +5,8 @@
 # Local developer resources
 .devbox
 .venv
+venv
+
 .cache
 bin/
 **/.DS_STORE
