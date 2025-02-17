@@ -1,19 +1,33 @@
 {
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.10.7/.schema/devbox.schema.json",
   "packages": [
+    "gum@latest",
+    "tilt@latest",
     "go@latest",
     "go-task@latest",
-    "act@latest",
     "envsubst@latest",
+
+    "act@latest",
     "gh@latest",
-    "jq@latest",
     "ko@latest",
-    "yq-go@latest"
+
+    "jq@latest",
+    "yq-go@latest",
+
+    "k9s@latest",
+    "kind@latest",
+    "kluctl@latest",
+    "kubectl@latest",
+    "kubectx@latest",
+    "kubent@latest",
+    "kubernetes-helm@latest",
+    "kustomize@latest"
   ],
   "shell": {
     "init_hook": [
       "export GOBIN=$(git rev-parse --show-toplevel)/.cache/bin",
-      "export PATH=$GOBIN:$PATH"
+      "export PATH=$GOBIN:$PATH",
+      "go install sigs.k8s.io/cloud-provider-kind@v0.2.0"
     ],
     "scripts": {
       "test": ["echo \"Error: no test specified\" && exit 1"]

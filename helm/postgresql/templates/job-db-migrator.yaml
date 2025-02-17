@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-db-migrator
+  namespace: {{ .Release.Namespace }}
+spec:
+  template:
+    metadata:
+      labels:
+        app: db-migrator
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: db-migrator
+          image: {{ .Values.migrator.image }}
+          command: ["sh", "-c", "psql -h {{ .Values.database.host }} -U postgres -f /migrations/init.sql"]
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.name }}
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: migration-scripts
+              mountPath: /migrations
+      volumes:
+        - name: migration-scripts
+          configMap:
+            name: {{ .Values.migrationConfigMap }}

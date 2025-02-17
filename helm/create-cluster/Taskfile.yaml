@@ -1,0 +1,25 @@
+version: "3"
+
+env:
+  CLUSTER_NAME: system-tester
+  # Set default gum style options
+  BORDER: double
+  BORDER_FOREGROUND: "212"
+  PADDING: "1 1"
+  MARGIN: "1 1"
+
+tasks:
+  start:
+    desc: "Start a cluster with KinD"
+    cmds:
+      - REPLACE_WITH_ABSOLUTE_PATH=${PWD} envsubst < kind-config.yaml.TEMPLATE > kind-config.yaml
+      - kind create cluster --config kind-config.yaml
+
+      # start the cloud provider, so that you have an external IP address with traefik
+      # $ kubectl get svc -n system-tester
+      - sudo ../../.cache/bin/cloud-provider-kind
+  stop:
+    desc: "Stop and clean up cluster"
+    cmds:
+      - kind delete cluster
+

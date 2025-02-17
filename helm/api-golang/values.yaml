@@ -1,0 +1,30 @@
+replicaCount: 1
+
+image:
+  repository: superelectron/kubernetes-golang
+  tag: latest
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: true
+  host: subnet.mysite.com
+  path: /api/golang
+  middleware: strip-api-prefixes
+  entryPoint: web
+
+secret:
+  name: api-golang-database-url
+  databaseUrl: "postgres://postgres:foobarbaz@postgres-postgresql.postgres.svc.cluster.local:5432/postgres"
+
+env:
+  port: 8000
+
+resources:
+  limits:
+    memory: "100Mi"
+  requests:
+    memory: "100Mi"
+    cpu: "50m"

@@ -1,0 +1,10 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ .Values.ingress.middleware }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  stripPrefix:
+    forceSlash: false
+    prefixes:
+      - {{ .Values.ingress.path }}

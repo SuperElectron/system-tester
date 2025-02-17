@@ -41,6 +41,7 @@ tasks:
     - task: api-golang:build
     - task: client:build
     - task: postgresql:build
+    - task: postgresql:build-migration
     - task: load-generator:build
 
 ##############################################################################
@@ -57,8 +58,8 @@ tasks:
     cmds:
       - |
         CONTAINER_ID=$(docker ps -q --filter "name=postgresql")
-        docker cp ./postgresql/init/create_users.sql $CONTAINER_ID:/tmp/create_users.sql
-        docker exec $CONTAINER_ID psql -U "postgres" -f /tmp/create_users.sql
+        docker cp ./postgresql/init/create_users.up.sql $CONTAINER_ID:/tmp/create_users.up.sql
+        docker exec $CONTAINER_ID psql -U "postgres" -f /tmp/create_users.up.sql
 
 ##############################################################################
 ## LOAD TEST

@@ -1,0 +1,52 @@
+version: "3"
+
+env:
+  RELEASE_NAME: "api-golang"
+  NAMESPACE: "{{.T_NAMESPACE | default `api-golang` }}"
+
+tasks:
+  install:
+    desc: "Install or upgrade the Helm release for api-golang"
+    cmds:
+      - helm upgrade --install {{.RELEASE_NAME}} . --namespace {{.NAMESPACE}} --create-namespace
+
+  uninstall:
+    desc: "Uninstall the Helm release for api-golang"
+    cmds:
+      - helm uninstall {{.RELEASE_NAME}} --namespace {{.NAMESPACE}}
+
+  lint:
+    desc: "Run helm lint to check for syntax issues"
+    cmds:
+      - helm lint .
+
+  template:
+    desc: "Render Helm templates locally for debugging"
+    cmds:
+      - helm template {{.RELEASE_NAME}} . --namespace {{.NAMESPACE}}
+
+  test:
+    desc: "Run Helm tests"
+    cmds:
+      - helm test {{.RELEASE_NAME}} --namespace {{.NAMESPACE}}
+
+  status:
+    desc: "Get the status of the Helm release"
+    cmds:
+      - helm status {{.RELEASE_NAME}} --namespace {{.NAMESPACE}}
+
+  list:
+    desc: "List all Helm releases in the namespace"
+    cmds:
+      - helm list --namespace {{.NAMESPACE}}
+
+  rollback:
+    desc: "Rollback the last Helm release"
+    cmds:
+      - helm rollback {{.RELEASE_NAME}} 0 --namespace {{.NAMESPACE}}
+
+  delete:
+    desc: "Delete the Helm release and all associated resources"
+    cmds:
+      - helm uninstall {{.RELEASE_NAME}} --namespace {{.NAMESPACE}}
+      - kubectl delete namespace {{.NAMESPACE}}

@@ -1,0 +1,48 @@
+version: "3"
+
+env:
+  HELM_RELEASE: "client"
+  NAMESPACE: "{{.T_NAMESPACE | default `client` }}"
+#  CHART_PATH: "."
+
+tasks:
+  install:
+    desc: "Install or upgrade the client Helm release"
+    cmds:
+      - helm upgrade --install {{.HELM_RELEASE}} {{.CHART_PATH}} --namespace {{.NAMESPACE}} --create-namespace
+
+  uninstall:
+    desc: "Uninstall the client Helm release"
+    cmds:
+      - helm uninstall {{.HELM_RELEASE}} --namespace {{.NAMESPACE}}
+
+  template:
+    desc: "Render the Helm templates locally"
+    cmds:
+      - helm template {{.HELM_RELEASE}} {{.CHART_PATH}} --namespace {{.NAMESPACE}}
+
+  lint:
+    desc: "Lint the Helm chart"
+    cmds:
+      - helm lint {{.CHART_PATH}}
+
+  status:
+    desc: "Check the status of the client release"
+    cmds:
+      - helm status {{.HELM_RELEASE}} --namespace {{.NAMESPACE}}
+
+  list:
+    desc: "List all Helm releases in the namespace"
+    cmds:
+      - helm list --namespace {{.NAMESPACE}}
+
+  rollback:
+    desc: "Rollback the last Helm release"
+    cmds:
+      - helm rollback {{.HELM_RELEASE}} 0 --namespace {{.NAMESPACE}}
+
+  delete:
+    desc: "Delete the Helm release and all associated resources"
+    cmds:
+      - helm uninstall {{.HELM_RELEASE}} --namespace {{.NAMESPACE}}
+      - kubectl delete namespace {{.NAMESPACE}}

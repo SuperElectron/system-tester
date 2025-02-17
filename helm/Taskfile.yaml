@@ -1,0 +1,152 @@
+version: "3"
+
+###########################################################################
+env:
+
+  # Set default gum style options
+  BORDER: double
+  BORDER_FOREGROUND: "212"
+  PADDING: "1 1"
+  MARGIN: "1 1"
+  DOCKER_REPO: "superelectron/kubernetes-load-generator"
+  T_NAMESPACE: "system-tester"
+
+###########################################################################
+includes:
+
+  api-golang:
+    taskfile: ./api-golang/Taskfile.yaml
+    dir: ./api-golang
+
+  client:
+    taskfile: ./client/Taskfile.yaml
+    dir: ./client
+
+  cluster:
+    taskfile: ./create-cluster/Taskfile.yaml
+    dir: ./create-cluster
+
+  load-generator:
+    taskfile: ./load-generator/Taskfile.yaml
+    dir: ./load-generator
+
+  postgresql:
+    taskfile: ./postgresql/Taskfile.yaml
+    dir: ./postgresql
+
+###########################################################################
+tasks:
+
+#  start:
+#    - task: apply-namespace
+#    - task: deploy-traefik
+#
+#    - task: postgres
+#    - task: api-golang
+
+### STEP 1
+  prepare:
+    desc: "Create golang api with namespace"
+    cmds:
+      - task: cluster:start
+
+  namespace:
+    desc: "Apply Kubernetes Namespace"
+    cmds:
+      - kubectl create namespace {{.T_NAMESPACE}}
+      - kubens {{.T_NAMESPACE}}
+
+### STEP 2
+  # kubectl get namespaces
+  postgres:
+    desc: "Deploy PostgreSQL using Helm"
+    cmds:
+      - task: postgresql:install
+
+### STEP 3
+  deploy-traefik:
+    vars:
+        NAMESPACE: "{{.T_NAMESPACE}}"
+    desc: "Deploy Traefik using Helm"
+    cmds:
+      - helm repo add traefik https://traefik.github.io/charts
+      - helm repo update
+      - helm upgrade --install traefik traefik/traefik --namespace {{.T_NAMESPACE}} --create-namespace --version 20.8.0
+
+### STEP 4
+  api-golang:
+    vars:
+      NAMESPACE: "{{.T_NAMESPACE}}"
+    desc: "Create golang api"
+    cmds:
+    - task: api-golang:install
+
+  client:
+    vars:
+      NAMESPACE: "{{.T_NAMESPACE}}"
+    desc: "Create client"
+    cmds:
+      - task: client:install
+
+### STEP 5 - run the load test
+  load-test:
+    vars:
+      NAMESPACE: "{{.T_NAMESPACE}}"
+    desc: "Apply kubernetes resource manifests: load-generator"
+    cmds:
+      - cmd: |
+          gum style "$(cat <<EOF
+          🚨  You will need to push a copy of the corresponding container image
+          🚨  container image to a repository of your own because
+          🚨  $DOCKER_REPO
+          🚨  is private (to demonstrate how image pull secrets work)
+          EOF
+          )"
+        silent: true
+      - task: load-generator:install
+
+### SHUTDOWN
+
+  stop:
+    desc: "Stop all workloads in the namespace without deleting it"
+    cmds:
+      - kubectl scale deployment --all --replicas=0 -n {{.T_NAMESPACE}}
+      - kubectl scale statefulset --all --replicas=0 -n {{.T_NAMESPACE}}
+      - kubectl delete pod --all -n {{.T_NAMESPACE}}
+      - kubectl delete job --all -n {{.T_NAMESPACE}}
+#      - kubectl patch cronjob --all -n {{.NAMESPACE}} --type='merge' -p '{"spec": {"suspend": true}}'
+#      - kubectl patch cronjob --all -n {{.NAMESPACE}} -p '{"spec": { "suspend": true } }'
+
+#  check_running:
+#    desc: "Check all running resources"
+#    cmds: 
+#      - cmd: | 
+#      gum style "$(cat <<EOF
+#         kubectl get all -n {{.T_NAMESPACE}}
+#         kubectl get pvc -n {{.T_NAMESPACE}}
+#         kubectl get pv
+#         kubectl get svc -n {{.T_NAMESPACE}} | grep LoadBalancer
+#         kubectl get ingress -n {{.T_NAMESPACE}}
+#         kubectl get svc -n {{.T_NAMESPACE}} --output=jsonpath='{ .items[ * ].status.loadBalancer.ingress[ * ].ip }'
+#      EOF
+#      )"
+
+
+
+  delete:
+    desc: "Apply kubernetes resource manifests: load-generator"
+    cmds:
+      - cmd: |
+          gum style "$(cat <<EOF
+
+          ✅ All Helm releases in that namespace
+          ✅ PersistentVolumeClaims (PVCs) (if not retained by a StorageClass)
+          ✅ Pods and workloads running inside the namespace
+          ❌ Cluster-wide resources (like CustomResourceDefinitions (CRDs))
+          ❌ Storage Volumes (if your StorageClass retains PVCs after deletion)
+          ❌ Helm Repositories (Helm itself stays intact, just the releases in that namespace are removed)
+          EOF
+          )"
+
+      - kubectl delete namespace {{.T_NAMESPACE}}
+      - task: cluster:stop

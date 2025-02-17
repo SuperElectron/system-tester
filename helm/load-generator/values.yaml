@@ -1,0 +1,25 @@
+replicaCount: 1
+
+image:
+  repository: superelectron/kubernetes-load-generator
+  tag: latest
+  pullPolicy: Always
+
+service:
+  port: 8080
+
+env:
+  apiUrl: http://api-golang.system-tester.svc.cluster.local:8080
+  delayMs: "100"
+
+configMap:
+  name: load-generator-config
+
+resources:
+  limits:
+    memory: "50Mi"
+  requests:
+    memory: "50Mi"
+    cpu: "100m"
+
+imagePullSecret: dockerconfigjson
